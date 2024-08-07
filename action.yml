@@ -24,6 +24,26 @@ runs:
   using: composite
 
   steps:
+    # To make this action OS-agnostic, we need to explicitly compute the install path
+    # and shell for the following reasons:
+    # 1. The Windows directory separator (backslash \) is treated as escape character
+    #    in bash, which rules out(*) using bash in Windows runs.
+    # 2. Composite actions does not support a default shell: https://github.com/actions/runner/blob/fb6d1adb430a6c96407c5857854a40662af439c8/docs/adrs/1144-composite-actions.md#defaults---not-being-considered-at-this-time
+    #
+    # (*) By enclosing the entire path in single quotes, the backslash can be preserved
+    #     in bash, but this feels to me like an ugly and unintuitive workaround.
+    - name: Compute OS-specific config
+      id: os-specific-config
+      shell: bash
+      run: |
+        if [ '${{ runner.os }}' != 'Windows' ]; then
+          echo "install-path=${{ runner.temp }}/plantuml.jar" >> "$GITHUB_OUTPUT"
+          echo "shell=bash" >> "$GITHUB_OUTPUT"
+        else
+          echo "install-path=${{ runner.temp }}\plantuml.jar" >> "$GITHUB_OUTPUT"
+          echo "shell=pwsh" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Load cached plantuml
       id: cached-plantuml
       if: >
@@ -31,21 +51,34 @@ runs:
         && ${{ inputs.version != 'latest' }}
       uses: actions/cache@v4.0.2
       with:
-        path: ${{ runner.temp }}/plantuml.jar
-        key: plantuml-jar-${{ inputs.version }}
+        path: ${{ steps.os-specific-config.outputs.install-path }}
+        key: plantuml-jar-${{ runner.os }}-${{ inputs.version }}
 
-    - name: Download plantuml
+    - name: Compute plantuml source path
+      id: plantuml-source-path
       if: steps.cached-plantuml.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        PLANTUML_RELEASES_BASE_URL=https://github.com/plantuml/plantuml/releases/
         if [ '${{ inputs.version }}' = 'latest' ]; then
-          PLANTUML_DOWNLOAD_URL=https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          PLANTUML_DOWNLOAD_PATH=latest/download/plantuml.jar
         else
-          PLANTUML_DOWNLOAD_URL=https://github.com/plantuml/plantuml/releases/download/v${{ inputs.version }}/plantuml.jar
+          PLANTUML_DOWNLOAD_PATH=download/v${{ inputs.version }}/plantuml.jar
         fi
-        curl -L -o ${{ runner.temp }}/plantuml.jar $PLANTUML_DOWNLOAD_URL
+        echo "value=$PLANTUML_RELEASES_BASE_URL/$PLANTUML_DOWNLOAD_PATH" \
+          >> "$GITHUB_OUTPUT"
+
+    - name: Install plantuml
+      if: steps.cached-plantuml.outputs.cache-hit != 'true'
+      shell: ${{ steps.os-specific-config.outputs.shell }}
+      run: >
+        curl -Ls
+        -o ${{ steps.os-specific-config.outputs.install-path }}
+        ${{ steps.plantuml-source-path.outputs.value }}
 
     - name: Run plantuml
-      shell: bash
-      run: |
-        java ${{ inputs.jvm-options }} -jar ${{ runner.temp }}/plantuml.jar ${{ inputs.cli-arguments }}
+      shell: ${{ steps.os-specific-config.outputs.shell }}
+      run: >
+        java ${{ inputs.jvm-options }}
+        -jar ${{ steps.os-specific-config.outputs.install-path }}
+        ${{ inputs.cli-arguments }}
