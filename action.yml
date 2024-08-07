@@ -49,21 +49,34 @@ runs:
       if: ${{ inputs.cache-plantuml-jar == 'true' && inputs.version != 'latest' }}
       uses: actions/cache@v4.0.2
       with:
-        path: ${{ runner.temp }}/plantuml.jar
-        key: plantuml-jar-${{ inputs.version }}
+        path: ${{ steps.os-specific-config.outputs.install-path }}
+        key: plantuml-jar-${{ runner.os }}-${{ inputs.version }}
 
-    - name: Download plantuml
+    - name: Compute plantuml source path
+      id: plantuml-source-path
       if: steps.cached-plantuml.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        PLANTUML_RELEASES_BASE_URL=https://github.com/plantuml/plantuml/releases/
         if [ '${{ inputs.version }}' = 'latest' ]; then
-          PLANTUML_DOWNLOAD_URL=https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar
+          PLANTUML_DOWNLOAD_PATH=latest/download/plantuml.jar
         else
-          PLANTUML_DOWNLOAD_URL=https://github.com/plantuml/plantuml/releases/download/v${{ inputs.version }}/plantuml.jar
+          PLANTUML_DOWNLOAD_PATH=download/v${{ inputs.version }}/plantuml.jar
         fi
-        curl -L -o ${{ runner.temp }}/plantuml.jar $PLANTUML_DOWNLOAD_URL
+        echo "value=$PLANTUML_RELEASES_BASE_URL/$PLANTUML_DOWNLOAD_PATH" \
+          >> "$GITHUB_OUTPUT"
+
+    - name: Install plantuml
+      if: steps.cached-plantuml.outputs.cache-hit != 'true'
+      shell: ${{ steps.os-specific-config.outputs.shell }}
+      run: >
+        curl -Ls
+        -o ${{ steps.os-specific-config.outputs.install-path }}
+        ${{ steps.plantuml-source-path.outputs.value }}
 
     - name: Run plantuml
-      shell: bash
-      run: |
-        java ${{ inputs.jvm-options }} -jar ${{ runner.temp }}/plantuml.jar ${{ inputs.cli-arguments }}
+      shell: ${{ steps.os-specific-config.outputs.shell }}
+      run: >
+        java ${{ inputs.jvm-options }}
+        -jar ${{ steps.os-specific-config.outputs.install-path }}
+        ${{ inputs.cli-arguments }}
