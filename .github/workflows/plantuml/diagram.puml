@@ -1,0 +1,7 @@
+@startuml output_filename
+!$data = %load_json(input_data_file)
+!assert %size($data) != 0
+
+$data.actor1 -> $data.actor2 : $data.message
+$data.actor2 -> $data.actor1 : $data.reply
+@enduml
