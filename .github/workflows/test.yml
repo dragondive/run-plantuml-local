@@ -1,0 +1,117 @@
+name: Test the run-plantuml-local action
+on:
+  workflow_dispatch:
+
+env:
+  diagram_source_path: .github/workflows/plantuml/diagram.puml
+  diagram_data_path: .github/workflows/plantuml/diagram-data.json
+  output_filename: test_plantuml
+
+jobs:
+  cli-generate-diagram:
+    name: CLI arguments processed
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          # - ubuntu-22.04
+          # - ubuntu-20.04
+          - macos-14
+          # - macos-13
+          # - macos-12
+          - windows-2022
+          # - windows-2019
+        plantuml-version:
+          # - latest
+          - '1.2024.6'
+          # - '1.2024.5'
+          # - '1.2024.4'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run plantuml
+        uses: dragondive/run-plantuml-local@main
+        with:
+          version: ${{ matrix.plantuml-version }}
+          cli-arguments: >
+            -tsvg -noerror
+            -Dinput_data_file=${{ github.workspace }}/${{ env.diagram_data_path }}
+            -Doutput_filename=${{ env.output_filename }}
+            -o ${{ github.workspace }}
+            ${{ github.workspace }}/${{ env.diagram_source_path }}
+          jvm-options: ''
+
+      - name: Check result
+        shell: bash
+        run: |
+          if ! [ -f '${{ github.workspace }}/${{ env.output_filename }}.svg' ]; then
+            echo "::error::Diagram file not found."
+            exit 1
+          fi
+
+          if [ "$(awk \
+              'BEGIN {count=0} \
+              /Hello Alice!/ && /Hello Bob!/ {++count} \
+              END {print count}' \
+              2>/dev/null \
+              '${{ github.workspace}}/${{ env.output_filename }}.svg')" -ne 1 ]; then
+            echo "::error::Diagram not created correctly."
+            exit 1
+          fi
+
+  jvm-configure-heap-size:
+    name: JVM options processed
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          # - ubuntu-22.04
+          # - ubuntu-20.04
+          - macos-14
+          # - macos-13
+          # - macos-12
+          - windows-2022
+          # - windows-2019
+        plantuml-version:
+          # - latest
+          - '1.2024.6'
+          # - '1.2024.5'
+          # - '1.2024.4'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run plantuml
+        uses: dragondive/run-plantuml-local@main
+        with:
+          version: ${{ matrix.plantuml-version }}
+          cli-arguments: >
+            -tpng -noerror -nometadata
+            -Dinput_data_file=${{ github.workspace }}/${{ env.diagram_data_path }}
+            -Doutput_filename=${{ env.output_filename }}
+            -o ${{ github.workspace }}
+            ${{ github.workspace }}/${{ env.diagram_source_path }}
+          jvm-options: -DPLANTUML_LIMIT_SIZE=1
+
+      - name: Check result
+        shell: bash
+        run: |
+          if ! [ -f '${{ github.workspace }}/${{ env.output_filename }}.png' ]; then
+            echo "::error::Diagram file not found."
+            exit 1
+          fi
+
+          IMAGE_FILE_SIZE="$(ls -l \
+            '${{ github.workspace }}/${{ env.output_filename }}.png' \
+            | awk '{print $5}')"
+          THRESHOLD_SIZE=200
+          if [ "$IMAGE_FILE_SIZE" -lt 1 ] \
+              || [ "$IMAGE_FILE_SIZE" -gt "$THRESHOLD_SIZE" ]; then
+            echo "::error::JVM options not processed correctly."
+            exit 1
+          fi
