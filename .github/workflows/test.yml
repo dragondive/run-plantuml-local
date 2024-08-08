@@ -1,0 +1,151 @@
+name: Test the run-plantuml-local action
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+env:
+  diagram-source-path: .github/workflows/plantuml/diagram.puml
+  diagram-data-path: .github/workflows/plantuml/diagram-data.json
+  output-filename: test_plantuml
+
+jobs:
+  cli-generate-diagram:
+    name: CLI arguments processed
+
+    # Sanity test to check if CLI arguments passed to plantuml are processed correctly.
+    # The puml file used here reads a JSON file. Data strings from the JSON file are
+    # put into the generated sequence diagram.
+    #
+    # We pass the puml file, the JSON file and an output filename as CLI arguments.
+    # We check that an SVG file with the given filename is created. Moreover, as the
+    # output is in text-based SVG format, we also search in it for some data strings
+    # from the JSON file.
+    #
+    # This is a sanity test only, not a comprehensive test of the plantuml CLI.
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - ubuntu-20.04
+          - macos-14
+          - macos-13
+          - macos-12
+          - windows-2022
+          - windows-2019
+        plantuml-version:
+          - latest
+          - '1.2024.6'
+          - '1.2024.5'
+          - '1.2024.4'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run plantuml
+        uses: ./
+        with:
+          version: ${{ matrix.plantuml-version }}
+          cache-plantuml-jar: false
+          cli-arguments: >
+            -tsvg -noerror
+            -Dinput_data_file=${{ github.workspace }}/${{ env.diagram-data-path }}
+            -Doutput_filename=${{ env.output-filename }}
+            -o ${{ github.workspace }}
+            ${{ github.workspace }}/${{ env.diagram-source-path }}
+          jvm-options: ''
+
+      - name: Check result
+        shell: bash
+        run: |
+          if ! [ -f '${{ github.workspace }}/${{ env.output-filename }}.svg' ]; then
+            echo "::error::Diagram file not found."
+            exit 1
+          fi
+
+          if [ "$(awk \
+              'BEGIN {count=0} \
+              /Hello Alice!/ && /Hello Bob!/ {++count} \
+              END {print count}' \
+              2>/dev/null \
+              '${{ github.workspace}}/${{ env.output-filename }}.svg')" -ne 1 ]; then
+            echo "::error::Diagram not created correctly."
+            exit 1
+          fi
+
+  jvm-configure-plantuml-limit-size:
+    name: JVM options processed
+
+    # Sanity test to check if JVM options are processed correctly.
+    # We set the PLANTUML_LIMIT_SIZE to the minimum valid value (1), and check that
+    # the generated image size is below a certain threshold size. We also use the
+    # -nometadata option to limit the file size by not embedding the image metadata.
+    #
+    # We cannot take a more direct approach, such as specifying -Xmx0 (maximum heap
+    # size 0) and checking for an exception. Github Actions will immediately terminate
+    # the job with error status. There is no feature to "expect" an error, that is,
+    # treat the occurence of an error as a success.
+    #
+    # We choose the PNG format and not SVG because plantuml generates the complete
+    # diagram in SVG, even if its size exceeds PLANTUML_LIMIT_SIZE. This is fair because
+    # PLANTUML_LIMIT_SIZE is intended to be used to _increase_ the diagram size beyond
+    # the defaults, not to decrease it. We are practically "hacking" the property for
+    # this automated testing. =)
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - ubuntu-20.04
+          - macos-14
+          - macos-13
+          - macos-12
+          - windows-2022
+          - windows-2019
+        plantuml-version:
+          - latest
+          - '1.2024.6'
+          - '1.2024.5'
+          - '1.2024.4'
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run plantuml
+        uses: ./
+        with:
+          version: ${{ matrix.plantuml-version }}
+          cache-plantuml-jar: false
+          cli-arguments: >
+            -tpng -noerror -nometadata
+            -Dinput_data_file=${{ github.workspace }}/${{ env.diagram-data-path }}
+            -Doutput_filename=${{ env.output-filename }}
+            -o ${{ github.workspace }}
+            ${{ github.workspace }}/${{ env.diagram-source-path }}
+          jvm-options: -DPLANTUML_LIMIT_SIZE=1
+
+      - name: Check result
+        shell: bash
+        run: |
+          if ! [ -f '${{ github.workspace }}/${{ env.output-filename }}.png' ]; then
+            echo "::error::Diagram file not found."
+            exit 1
+          fi
+
+          IMAGE_FILE_SIZE="$(ls -l \
+            '${{ github.workspace }}/${{ env.output-filename }}.png' \
+            | awk '{print $5}')"
+          THRESHOLD_SIZE=200
+          if [ "$IMAGE_FILE_SIZE" -lt 1 ] \
+              || [ "$IMAGE_FILE_SIZE" -gt "$THRESHOLD_SIZE" ]; then
+            echo "::error::JVM options not processed correctly."
+            exit 1
+          fi
