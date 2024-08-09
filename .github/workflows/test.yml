@@ -2,6 +2,8 @@ name: Test the run-plantuml-local action
 on:
   workflow_dispatch:
   pull_request:
+    branches:
+      - main
 
 env:
   diagram_source_path: .github/workflows/plantuml/diagram.puml
@@ -34,7 +36,7 @@ jobs:
         uses: actions/checkout@v4.1.7
 
       - name: Run plantuml
-        uses: dragondive/run-plantuml-local@${{ github.sha }}
+        uses: ./
         with:
           version: ${{ matrix.plantuml-version }}
           cli-arguments: >
