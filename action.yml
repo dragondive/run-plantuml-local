@@ -82,3 +82,4 @@ runs:
         java ${{ inputs.jvm-options }}
         -jar ${{ steps.os-specific-config.outputs.install-path }}
         ${{ inputs.cli-arguments }}
+        echo "PR testing message"
