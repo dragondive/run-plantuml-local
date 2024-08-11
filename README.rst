@@ -26,7 +26,7 @@ Usage
   |
   | :pencil: For the available versions, see `plantuml releases`_.
 
-* | ``cache-plantuml-jar``: Cache the downloaded plantuml.jar file, or use the 
+* | ``cache-plantuml-jar``: Cache the downloaded plantuml.jar file, or use the
     previously cached file, if available.
   |
   | **Example values**: ``true``, ``false``
@@ -48,6 +48,36 @@ Usage
     ``-DPLANTUML_SECURITY_PROFILE=UNSECURE``
   | **Default**: ``''``
 
+Examples
+--------
+
+* This action's sanity tests also serve as a reference for how to use this action in a
+  Github Actions workflow. Relevant code snippets with minor adaptations are copied
+  below for easy reference.
+
+  .. code:: yaml
+
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4.1.7
+
+        - name: Run plantuml
+          uses: dragondive/run-plantuml-local@v1.0.1
+          with:
+            version: '1.2024.6'
+            cache-plantuml-jar: true
+            cli-arguments: >
+              -tsvg -noerror
+              -Dinput_data_file=${{ github.workspace }}/plantuml/diagram-data.json
+              -Doutput_filename=test_plantuml
+              -o ${{ github.workspace }}
+              ${{ github.workspace }}/plantuml/diagram.puml
+            jvm-options: -DPLANTUML_LIMIT_SIZE=8192 -Xmx1024m
+
+
+  For the complete workflow, see
+  `test.yml <https://github.com/dragondive/run-plantuml-local/blob/73d65471cab0e84d9a14fb4fbffb20160aa4d76b/.github/workflows/test.yml>`_.
+
 Frequently Asked Questions (FAQ)
 --------------------------------
 
@@ -58,10 +88,21 @@ work well for most usecases. When working on automating my diagram generations, 
 initially included them in my workflows. However, I encountered limitations with
 diagrams that required file includes and setting JVM options. For full flexibility
 and control, I needed to use a local plantuml.jar to generate the diagrams, leading to
-the creation of this action. 
+the creation of this action.
 
 The limitations of the server and docker-based actions are detailed in the wiki here:
 `Why create this action instead of using the server-based or docker-based actions`_.
+
+----------
+
+**Q**: Why is caching not supported when ``version`` is specified as ``latest``?
+
+**A**: The initial implementation of this action uses the specified version as part of
+the cache key. With this approach, cache invalidation when plantuml releases a new
+version becomes a challenge. Issue `#2 <https://github.com/dragondive/run-plantuml-local/issues/2>`_
+tracks this enhancement. Caching when ``version`` = ``latest`` will be supported in a
+future version.
+
 
 .. _plantuml releases: https://github.com/plantuml/plantuml/releases
 .. _plantuml command line: https://plantuml.com/command-line
