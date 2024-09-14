@@ -1,4 +1,4 @@
-name: Test the run-plantuml-local action
+name: Test the action Local PlantUML run
 on:
   workflow_dispatch:
   pull_request:
@@ -38,9 +38,9 @@ jobs:
           - windows-2019
         plantuml-version:
           - latest
+          - '1.2024.7'
           - '1.2024.6'
           - '1.2024.5'
-          - '1.2024.4'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -110,9 +110,9 @@ jobs:
           - windows-2019
         plantuml-version:
           - latest
+          - '1.2024.7'
           - '1.2024.6'
           - '1.2024.5'
-          - '1.2024.4'
 
     runs-on: ${{ matrix.os }}
     steps:

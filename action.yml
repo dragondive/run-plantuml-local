@@ -1,4 +1,4 @@
-name: run-plantuml-local
+name: Local PlantUML run
 description: Run plantuml using locally downloaded jar file
 inputs:
   version:
