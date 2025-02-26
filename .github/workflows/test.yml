@@ -37,9 +37,9 @@ jobs:
           - windows-2019
         plantuml-version:
           - latest
-          - '1.2024.7'
-          - '1.2024.6'
-          - '1.2024.5'
+          - '1.2025.1'
+          - '1.2025.0'
+          - '1.2024.8'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -108,9 +108,9 @@ jobs:
           - windows-2019
         plantuml-version:
           - latest
-          - '1.2024.7'
-          - '1.2024.6'
-          - '1.2024.5'
+          - '1.2025.1'
+          - '1.2025.0'
+          - '1.2024.8'
 
     runs-on: ${{ matrix.os }}
     steps:
