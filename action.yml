@@ -47,7 +47,7 @@ runs:
     - name: Load cached plantuml
       id: cached-plantuml
       if: ${{ inputs.cache-plantuml-jar == 'true' && inputs.version != 'latest' }}
-      uses: actions/cache@v4.0.2
+      uses: actions/cache@v4.2.0
       with:
         path: ${{ steps.os-specific-config.outputs.install-path }}
         key: plantuml-jar-${{ runner.os }}-${{ inputs.version }}
