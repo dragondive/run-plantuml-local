@@ -8,7 +8,6 @@ inputs:
   cache-plantuml-jar:
     description: >
       Cache the downloaded plantuml.jar
-      [ignored if version is specified as 'latest']
     default: 'true'
     required: false
   cli-arguments:
@@ -19,6 +18,14 @@ inputs:
     description: Options for the JVM
     default: ''
     required: false
+
+outputs:
+  plantuml-release-tag-used:
+    description: Release tag of the PlantUML jar used in this invocation
+    value: ${{ steps.plantuml-version.outputs.value }}
+  is-cached-jar-file-used:
+    description: true if previously cached jar file was used in this invocation
+    value: ${{ steps.cached-plantuml.outputs.cache-hit }}
 
 runs:
   using: composite
@@ -44,13 +51,27 @@ runs:
           echo "shell=pwsh" >> "$GITHUB_OUTPUT"
         fi
 
+    - name: Compute PlantUML version to download
+      id: plantuml-version
+      env:
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        if [ '${{ inputs.version }}' = 'latest' ]; then
+          LATEST_RELEASE_TAG=$(gh api repos/plantuml/plantuml/releases/latest \
+          --jq .tag_name)
+          echo "value=$LATEST_RELEASE_TAG" >> "$GITHUB_OUTPUT"
+        else
+          echo "value=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Load cached plantuml
       id: cached-plantuml
-      if: ${{ inputs.cache-plantuml-jar == 'true' && inputs.version != 'latest' }}
+      if: ${{ inputs.cache-plantuml-jar == 'true' }}
       uses: actions/cache@v4.2.0
       with:
         path: ${{ steps.os-specific-config.outputs.install-path }}
-        key: plantuml-jar-${{ runner.os }}-${{ inputs.version }}
+        key: plantuml-jar-${{ runner.os }}-${{ steps.plantuml-version.outputs.value }}
 
     - name: Compute plantuml source path
       id: plantuml-source-path
@@ -58,12 +79,8 @@ runs:
       shell: bash
       run: |
         PLANTUML_RELEASES_BASE_URL=https://github.com/plantuml/plantuml/releases/
-        if [ '${{ inputs.version }}' = 'latest' ]; then
-          PLANTUML_DOWNLOAD_PATH=latest/download/plantuml.jar
-        else
-          PLANTUML_DOWNLOAD_PATH=download/v${{ inputs.version }}/plantuml.jar
-        fi
-        echo "value=$PLANTUML_RELEASES_BASE_URL/$PLANTUML_DOWNLOAD_PATH" \
+        RELEASE_PATH=download/${{ steps.plantuml-version.outputs.value }}
+        echo "value=$PLANTUML_RELEASES_BASE_URL/$RELEASE_PATH/plantuml.jar" \
           >> "$GITHUB_OUTPUT"
 
     - name: Install plantuml
@@ -71,7 +88,7 @@ runs:
       shell: ${{ steps.os-specific-config.outputs.shell }}
       run: >
         curl -Ls
-        -o ${{ steps.os-specific-config.outputs.install-path }}
+        -o "${{ steps.os-specific-config.outputs.install-path }}"
         ${{ steps.plantuml-source-path.outputs.value }}
 
     - name: Run plantuml

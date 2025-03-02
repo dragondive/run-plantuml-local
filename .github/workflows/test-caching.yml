@@ -1,0 +1,171 @@
+name: Test caching
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  clear-previous-cache:
+    name: Clear caches from previous workflow runs, if any.
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      actions: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Clear caches from previous workflow runs, if any.
+        shell: bash
+        run: |
+          gh cache delete \
+          $(gh cache list \
+            --key plantuml-jar-${{ runner.os }} \
+            --json key \
+            --jq .[0].key \
+            --limit 1) \
+          || true
+
+  run-version-latest-with-caching:
+    name: Run with version as latest and caching enabled
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    needs:
+      - clear-previous-cache
+    outputs:
+      latest-version: ${{ steps.latest-version.outputs.value }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run with version as latest and caching enabled
+        id: run-version-latest-with-caching
+        uses: ./
+        with:
+          version: latest
+          cache-plantuml-jar: true
+
+      - name: Compute latest version from release tag
+        id: latest-version
+        shell: bash
+        run: |
+          RELEASE_TAG=${{ steps.run-version-latest-with-caching.outputs.plantuml-release-tag-used }}
+          echo "value=${RELEASE_TAG#v}" >> $GITHUB_OUTPUT
+
+  run-version-explicit-with-caching:
+    name: Run with latest version explicitly specified and caching enabled
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    needs:
+      - run-version-latest-with-caching
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run with latest version explicitly specified and caching enabled
+        id: run-version-explicit-with-caching
+        uses: ./
+        with:
+          version: ${{ needs.run-version-latest-with-caching.outputs.latest-version }}
+          cache-plantuml-jar: true
+
+      - name: Check cached JAR was used
+        shell: bash
+        run: |
+          if [ "${{ steps.run-version-explicit-with-caching.outputs.is-cached-jar-file-used }}" != 'true' ]; then
+            echo "::error::Cached JAR file was not used when latest version was explicitly specified."
+            exit 1
+          else
+            echo "::info::Cached JAR file was used when latest version was explicitly specified."
+          fi
+
+  run-version-explicit-without-caching:
+    name: Run with latest version explicitly specified and caching disabled
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    needs:
+      - run-version-latest-with-caching
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run with latest version explicitly specified and caching disabled
+        id: run-version-explicit-without-caching
+        uses: ./
+        with:
+          version: ${{ needs.run-version-latest-with-caching.outputs.latest-version }}
+          cache-plantuml-jar: false
+
+      - name: Check cached JAR was not used
+        shell: bash
+        run: |
+          if [ "${{ steps.run-version-explicit-without-caching.outputs.is-cached-jar-file-used }}" == 'true' ]; then
+            echo "::error::Cached JAR file was used when caching was disabled."
+          else
+            echo "::info::Cached JAR file was not used when caching was disabled."
+          fi
+
+  run-version-latest-without-caching:
+    name: Run with version as latest and caching disabled
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    needs:
+      - run-version-latest-with-caching
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run with version as latest and caching disabled
+        id: run-version-latest-without-caching
+        uses: ./
+        with:
+          version: latest
+          cache-plantuml-jar: false
+
+      - name: Check cached JAR was not used
+        shell: bash
+        run: |
+          if [ "${{ steps.run-version-latest-without-caching.outputs.is-cached-jar-file-used }}" == 'true' ]; then
+            echo "::error::Cached JAR file was used when caching was disabled."
+          else
+            echo "::info::Cached JAR file was not used when caching was disabled."
+          fi
