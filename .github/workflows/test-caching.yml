@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v5.0.0
 
       - name: Clear caches from previous workflow runs, if any.
         shell: bash
@@ -54,7 +54,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v5.0.0
 
       - name: Run with version as latest and caching enabled
         id: run-version-latest-with-caching
