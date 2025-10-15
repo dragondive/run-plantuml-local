@@ -1,0 +1,13 @@
+jobs:
+  dummy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dummy step
+        run: echo "This is a dummy step"
+name: Test
+'on':
+  workflow_run:
+    types:
+    - completed
+    workflows:
+    - Call Reuse Workflow Experiment
