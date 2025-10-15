@@ -27,6 +27,5 @@ jobs:
           uv run create_test.py
           ls -laR
 
-  run-reuse-workflow:
-    needs: create-reuse-workflow
-    uses: ./.github/workflows/test-reuse.yml
+      - name: Run reuse workflow
+        uses: ./.github/workflows/test-reuse.yml
