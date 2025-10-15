@@ -1,0 +1,14 @@
+name: Reuse Workflow Experiment
+on:
+  workflow_call:
+    inputs:
+      who:
+        required: true
+        type: string
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: echo "Hello, ${{ inputs.who }}!"

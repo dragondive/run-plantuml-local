@@ -1,0 +1,10 @@
+name: Call Reuse Workflow Experiment
+on:
+  workflow_dispatch:
+
+
+jobs:
+  call-reuse-workflow:
+    uses: ./.github/workflows/reuse-workflow.yml
+    with:
+      who: "Workaround"
