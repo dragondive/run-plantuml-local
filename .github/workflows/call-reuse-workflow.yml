@@ -26,6 +26,8 @@ jobs:
           cd ${GITHUB_WORKSPACE}/.github/workflows
           uv run create_test.py
           ls -laR
+          cd ${GITHUB_WORKSPACE}
+          cat ${GITHUB_WORKSPACE}/.github/workflows/test-reuse.yml
 
       - name: Run reuse workflow
         uses: ./.github/workflows/test-reuse.yml
