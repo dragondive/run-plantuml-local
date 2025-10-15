@@ -2,13 +2,16 @@ import yaml
 
 test_workflow = {
     "name": "Test",
-    "on": ["workflow_dispatch"],
+    "on": ["workflow_call"],
     "jobs": {
-        "call-reuse-workflow": {
-            "uses": "./.github/workflows/reuse-workflow.yml",
-            "with": {
-                "who": "Workaround"
-            }
+        "say-hello": {
+            "runs-on": "ubuntu-latest",
+            "steps": [
+                {
+                    "name": "Greet",
+                    "run": 'echo "Hello, World!"',
+                }
+            ]
         }
     }
 }

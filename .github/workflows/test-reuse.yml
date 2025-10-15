@@ -1,8 +1,0 @@
-jobs:
-  call-reuse-workflow:
-    uses: ./.github/workflows/reuse-workflow.yml
-    with:
-      who: Workaround
-name: Test
-'on':
-- workflow_dispatch
