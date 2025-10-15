@@ -2,7 +2,13 @@ import yaml
 
 test_workflow = {
     "name": "Test",
-    "on": ["workflow_call"],
+    "on": {
+        "workflow_run" :
+        {
+            "workflows": ["Call Reuse Workflow Experiment"],
+            "types": ["completed"]
+        }
+    },
     "jobs": {
         "say-hello": {
             "runs-on": "ubuntu-latest",
