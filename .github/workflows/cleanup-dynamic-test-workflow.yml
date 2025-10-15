@@ -1,0 +1,49 @@
+name: Cleanup Dynamic Test Workflow
+on:
+  workflow_run:
+    workflows:
+      - Generate Dynamic Test Workflow
+    types:
+      - completed
+
+jobs:
+  cleanup-dynamic-test-workflow:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+      # If the workflow generation did not succeed, no new commit (with the dynamic test workflow)
+      # was created, hence there is nothing to clean up.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5.0.0
+        with:
+          token: ${{ secrets.PAT_ACTIONS }}
+          fetch-depth: 2  # We hard reset to the previous commit, because the latest commit is our
+                          # dynamic test workflow commit. Hence, we need to fetch last 2 commits.
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      # The below artifact download is for additional safety. If the dynamic test creation workflow
+      # failed, the current workflow would not run anyway due to the if condition above.
+      # However, it is possible that the workflow was successful, but no new commit was created.
+      # In that case, this workflow will drop the latest (valid) commit, which we must avoid.
+      - name: Download dynamic test workflow creation status
+        uses: actions/download-artifact@v4
+        with:
+          name: dynamic-test-workflow-created
+          path: ./
+          github-token: ${{ secrets.PAT_ACTIONS }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Drop the dynamic test workflow commit
+        shell: bash
+        run: |
+          dynamic_workflow_created=$(grep dynamic_workflow_created status.txt | cut -d '=' -f 2)
+          if [ "$dynamic_workflow_created" != "true" ]; then
+            echo "::info::No dynamic test workflow commit to drop."
+            exit 0
+          else
+            echo "::info::Dropping the dynamic test workflow commit."
+            git log --oneline -2
+            git status
+          fi
+

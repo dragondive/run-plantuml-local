@@ -1,0 +1,52 @@
+name: Generate Dynamic Test Workflow
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate-dynamic-test-workflow:
+    runs-on: ubuntu-latest  # The generated workflow may run on any or multiple OS, but for the
+                            # workflow generation itself, we use ubuntu for convenience.
+
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7.1.0
+        with:
+          version: 0.9.2
+          python-version: 3
+
+      - name: Setup Python
+        run: uv python install
+
+      - name: Checkout repository
+        uses: actions/checkout@v5.0.0
+        with:
+          token: ${{ secrets.PAT_ACTIONS }}  # We need to use PAT here so we can commit the
+                                              # generated workflow file in the later step.
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Generate dynamic test workflow
+        shell: bash
+        run: >
+          uv run --with pyyaml python
+          ${GITHUB_WORKSPACE}/.github/workflows/scripts/generate_dynamic_test_workflow.py
+          --output ${GITHUB_WORKSPACE}/.github/workflows/dynamic-test.yml
+
+      - name: Commit the dynamic test workflow
+        uses: stefanzweifel/git-auto-commit-action@v7.0.0
+        id: commit-dynamic-test-workflow
+        with:
+          commit_message: "test(dynamic): Update dynamic test workflow due to '${{ github.event_name }}' event on '${{ github.ref }}'"
+          file_pattern: .github/workflows/dynamic-test.yml
+
+      - name: Store dynamic test workflow creation status
+        run: |
+          echo "dynamic_workflow_created=${{ steps.commit-dynamic-test-workflow.outputs.changes_detected }}" >> status.txt
+
+      - name: Upload dynamic test workflow creation status
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-test-workflow-created
+          path: status.txt
