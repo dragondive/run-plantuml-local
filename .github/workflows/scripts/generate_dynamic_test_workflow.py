@@ -14,32 +14,86 @@ def main():
 
     output_path = args.output
 
+    oses = [
+        "ubuntu-24.04",
+        "ubuntu-22.04",
+        "macos-15",
+        "macos-14",
+        "windows-2025",
+        "windows-2022",
+    ]
+
+    plantuml_versions = [
+        "latest",
+        "1.2025.8",
+        "1.2025.4",
+        "1.2025.3",
+    ]
+
     dynamic_test_workflow = {
         "name": "Test the action run-plantuml-local (dynamic edition)",
         "on": {
-            "workflow_run": {"workflows": "Generate Dynamic Test Workflow", "types": ["completed"]}
+            "workflow_dispatch": {
+                "inputs": {
+                    "ref": {
+                        "description": "the git ref where the dynamic test workflow is available.",
+                        "required": True,
+                    },
+                    "trigger_sha": {
+                        "description": "the sha related to the trigger for this workflow.",
+                        "required": True,
+                    }
+                }
+            },
+        },
+        "env": {
+            "GH_TOKEN": "${{ github.token }}"
         },
         "jobs": {
-            "overridden-job-main-branch": {
-                "runs-on": "ubuntu-latest",
-                "if": "${{ github.event.workflow_run.conclusion == 'success' }}",
+            "cli-generate-diagram": {
+                "name": "CLI arguments processed",
+                "strategy": {
+                    "matrix": {
+                        "os": oses,
+                        "plantuml_version": plantuml_versions,
+                    }
+                },
+                "runs-on": "${{ matrix.os }}",
                 "steps": [
                     {
-                        "name": "Overridden Job",
-                        "run": 'echo "::info::This is the overridden job for success case! (main branch)"',
-                    }
+                        "name": "Report pending status to trigger SHA",
+                        "run": (
+                            'gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha}} '
+                            '--field state=pending '
+                            '--field context="test(dynamic): ${{ matrix.os}} - ${{ matrix.plantuml_version }}" '
+                            '--field description="test(dynamic): ${{ matrix.os}} - ${{ matrix.plantuml_version }} result: pending"'
+                        ),
+                    },
+                    {
+                        "name": "Checkout Dynamic Test Workflow",
+                        "uses": "actions/checkout@v5.0.0",
+                        "with": {
+                            "ref": "${{ github.event.workflow_dispatch.inputs.ref }}",
+                            "token": "${{ secrets.PAT_ACTIONS }}",
+                        },
+                    },
+                    {
+                        "name": "Hello World",
+                        "id": "test-step",
+                        "run": 'echo "::info::Hello World from ${{ matrix.os }} with PlantUML version ${{ matrix.plantuml_version }}!"',
+                    },
+                    {
+                        "name": "Report final status to trigger SHA",
+                        "if": "(${{ success() }} || ${{ failure() }})",
+                        "run": (
+                            'gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha}} '
+                            '--field state=${{ steps.test-step.outcome }} '
+                            '--field context="test(dynamic): ${{ matrix.os}} - ${{ matrix.plantuml_version }}" '
+                            '--field description="test(dynamic): ${{ matrix.os}} - ${{ matrix.plantuml_version }} result: ${{ steps.test-step.outcome }}"'
+                        )
+                    },
                 ],
             },
-            "overridden-job-main-branch-failure": {
-                "runs-on": "ubuntu-latest",
-                "if": "${{ github.event.workflow_run.conclusion != 'success' }}",
-                "steps": [
-                    {
-                        "name": "Overridden Job Failure",
-                        "run": 'echo "::error::This is the overridden job for failure case! (main branch)" && exit 1',
-                    }
-                ],
-            }
         },
     }
 
