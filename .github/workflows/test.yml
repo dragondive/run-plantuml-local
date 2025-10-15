@@ -37,9 +37,9 @@ jobs:
           - windows-2022
         plantuml-version:
           - latest
-          - '1.2025.1'
-          - '1.2025.0'
-          - '1.2024.8'
+          - '1.2025.8'
+          - '1.2025.4'
+          - '1.2025.3'
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -108,9 +108,9 @@ jobs:
           - windows-2022
         plantuml-version:
           - latest
-          - '1.2025.1'
-          - '1.2025.0'
-          - '1.2024.8'
+          - '1.2025.8'
+          - '1.2025.4'
+          - '1.2025.3'
 
     runs-on: ${{ matrix.os }}
     steps:
