@@ -1,0 +1,6 @@
+name: Test Wrap
+on: workflow_call
+
+jobs:
+  call-test-reuse:
+    uses: ./.github/workflows/test-reuse.yml

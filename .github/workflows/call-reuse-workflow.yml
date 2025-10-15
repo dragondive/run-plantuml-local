@@ -29,5 +29,5 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           cat ${GITHUB_WORKSPACE}/.github/workflows/test-reuse.yml
 
-      - name: Run reuse workflow
-        uses: ./.github/workflows/test-reuse.yml
+  call-reuse-workflow-wrap:
+    uses: ./.github/workflows/test-reuse-wrap.yml
