@@ -26,6 +26,12 @@ jobs:
           token: ${{ secrets.PAT_ACTIONS }}  # We need to use PAT here so we can commit the
                                               # generated workflow file in the later step.
           ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0  # temporary fetch all history, optimize it later after it works
+
+      - name: Create branch for testing
+        shell: bash
+        run: |
+          git checkout -b test-${{ github.head_ref }}
 
       - name: Generate dynamic test workflow
         shell: bash
@@ -34,12 +40,22 @@ jobs:
           ${GITHUB_WORKSPACE}/.github/workflows/scripts/generate_dynamic_test_workflow.py
           --output ${GITHUB_WORKSPACE}/.github/workflows/dynamic-test.yml
 
+      - name: debug (to be rremoved)
+        shell: bash
+        run: |
+          git status
+          git log --oneline -5
+          git show ${{ github.head_ref }}
+          git show test-${{ github.head_ref }}
+
       - name: Commit the dynamic test workflow
         uses: stefanzweifel/git-auto-commit-action@v7.0.0
         id: commit-dynamic-test-workflow
         with:
           commit_message: "test(dynamic): Update dynamic test workflow due to '${{ github.event_name }}' event on '${{ github.ref }}'"
           file_pattern: .github/workflows/dynamic-test.yml
+          branch: test-${{ github.head_ref }}
+          push_options: '--force'
 
       - name: Store dynamic test workflow creation status
         run: |

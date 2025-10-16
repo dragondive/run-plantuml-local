@@ -58,11 +58,11 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Trigger on side branch
         run: |
-          echo "::info::Triggering on side branch '${{ github.event.workflow_run.head_branch }}'."
+          echo "::info::Triggering on side branch 'test-${{ github.event.workflow_run.head_branch }}'."
           gh workflow run dynamic-test.yml \
-            --ref ${{ github.event.workflow_run.head_branch }} \
+            --ref test-${{ github.event.workflow_run.head_branch }} \
             --repo ${{ github.repository }} \
-            --field "ref=${{ github.event.workflow_run.head_branch }}" \
+            --field "ref=test-${{ github.event.workflow_run.head_branch }}" \
             --field "trigger_sha=${{ github.event.workflow_run.head_sha }}"
           echo "::info::Triggered on side branch."
         env:
