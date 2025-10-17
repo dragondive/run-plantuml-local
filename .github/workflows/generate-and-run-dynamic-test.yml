@@ -1,0 +1,72 @@
+name: Generate dynamic tests and trigger them
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  BASE_BRANCH: ${{ github.head_ref || github.ref_name }}
+  DYNAMIC_TEST_BRANCH: dynamic-test-${{ github.head_ref || github.ref_name }}
+
+jobs:
+  generate-dynamic-tests-workflow:
+    runs-on: ubuntu-latest # We use ubuntu to generate the dynamic tests, but the tests may run on
+                           # any or multiple OS.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5.0.0
+        with:
+          token: ${{ secrets.PAT_ACTIONS }} # We need to use PAT here because the generated workflow
+                                            # file has to be committed in order to be run.
+          ref: ${{ env.BASE_BRANCH }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7.1.0
+        with:
+          version: 0.9.2
+          python-version: 3
+
+      - name: Setup python
+        run: uv python install
+
+      # We need to commit the generated dynamic tests workflow file to a separate dynamic-test
+      # branch to prevent unnecessary duplicate runs of tests in case of pull_request (and maybe
+      # some other trigger events). If we commit it to the current branch, then that commit will be
+      # treated as an update to the pull_request, which will trigger this workflow again. Moreover,
+      # if the generated dynamic test workflow file changes with every commit (for example, it
+      # contains the commit SHA or a timestamp), then it will lead to an infinite loop!
+      - name: Generate dynamic tests workflow
+        run: |
+          git checkout -b ${{ env.DYNAMIC_TEST_BRANCH }}
+          uv run --with pyyaml python \
+            ${GITHUB_WORKSPACE}/.github/workflows/scripts/generate_dynamic_test_workflow.py \
+            --output ${GITHUB_WORKSPACE}/.github/workflows/dynamic-tests.yml
+
+      - name: Commit to dynamic-test branch
+        uses: stefanzweifel/git-auto-commit-action@v7.0.0
+        with:
+          commit_message: "build: update dynamic-tests due to '${{ github.event_name}}' event on '${{ env.BASE_BRANCH }}'"
+          branch: ${{ env.DYNAMIC_TEST_BRANCH }}
+          file_pattern: .github/workflows/dynamic-tests.yml
+          push_options: '--force'
+  trigger-dynamic-tests:
+    runs-on: ubuntu-latest # We use ubuntu to trigger the dynamic tests, but they will run on the
+                           # OS specified in the tests.
+    needs:
+      - generate-dynamic-tests-workflow
+    steps:
+      - name: trigger dynamic tests on the dynamic-tests branch
+        run: |
+          echo "::debug::Triggering dynamic tests on '${{ env.DYNAMIC_TEST_BRANCH }}'."
+          gh workflow run dynamic-tests.yml \
+            --ref ${{ env.DYNAMIC_TEST_BRANCH }} \
+            --repo ${{ github.repository }} \
+            --field "ref=${{ env.DYNAMIC_TEST_BRANCH }}" \
+            --field "trigger_sha=${{ github.sha }}"
+          echo "::debug::Triggered dynamic tests on '${{ env.DYNAMIC_TEST_BRANCH }}'."
+        env:
+          GH_TOKEN: ${{ secrets.PAT_ACTIONS }}
