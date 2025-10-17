@@ -1,0 +1,18 @@
+name: dynamic-tests placeholder workflow on main branch
+on:
+  workflow_dispatch:
+
+
+# This placeholder workflow file is created because Github Actions requires one on the main branch.
+# Because we generate the tests workflow dynamically and run them from side branch, this placeholder
+# workflow should generally not be needed in practice.
+jobs:
+  placeholder-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder step
+        run: >
+          echo "::warning::"
+          "The dynamically generated workflow should override this job. Hence, in practice, this "
+          "job should never be executed. If you see this message in the output of a workflow run, "
+          "something has gone wrong. Hence, please report an issue for further investigation."
