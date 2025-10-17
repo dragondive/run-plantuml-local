@@ -47,23 +47,23 @@ jobs:
           "pull request, etc."
           && exit 1
 
-  trigger-on-side-branch:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5.0.0
-        with:
-          token: ${{ secrets.PAT_ACTIONS }}
-          ref: ${{ github.event.workflow_run.head_branch }}
-      - name: Trigger on side branch
-        run: |
-          echo "::info::Triggering on side branch 'test-${{ github.event.workflow_run.head_branch }}'."
-          gh workflow run dynamic-test.yml \
-            --ref test-${{ github.event.workflow_run.head_branch }} \
-            --repo ${{ github.repository }} \
-            --field "ref=test-${{ github.event.workflow_run.head_branch }}" \
-            --field "trigger_sha=${{ github.event.workflow_run.head_sha }}"
-          echo "::info::Triggered on side branch."
-        env:
-          GH_TOKEN: ${{ secrets.PAT_ACTIONS }}
+  # trigger-on-side-branch:
+  #   runs-on: ubuntu-latest
+  #   if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v5.0.0
+  #       with:
+  #         token: ${{ secrets.PAT_ACTIONS }}
+  #         ref: ${{ github.event.workflow_run.head_branch }}
+  #     - name: Trigger on side branch
+  #       run: |
+  #         echo "::info::Triggering on side branch 'test-${{ github.event.workflow_run.head_branch }}'."
+  #         gh workflow run dynamic-test.yml \
+  #           --ref test-${{ github.event.workflow_run.head_branch }} \
+  #           --repo ${{ github.repository }} \
+  #           --field "ref=test-${{ github.event.workflow_run.head_branch }}" \
+  #           --field "trigger_sha=${{ github.event.workflow_run.head_sha }}"
+  #         echo "::info::Triggered on side branch."
+  #       env:
+  #         GH_TOKEN: ${{ secrets.PAT_ACTIONS }}

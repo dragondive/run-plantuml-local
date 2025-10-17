@@ -57,12 +57,24 @@ jobs:
           branch: test-${{ github.head_ref }}
           push_options: '--force'
 
-      - name: Store dynamic test workflow creation status
-        run: |
-          echo "dynamic_workflow_created=${{ steps.commit-dynamic-test-workflow.outputs.changes_detected }}" >> status.txt
+      # - name: Store dynamic test workflow creation status
+      #   run: |
+      #     echo "dynamic_workflow_created=${{ steps.commit-dynamic-test-workflow.outputs.changes_detected }}" >> status.txt
 
-      - name: Upload dynamic test workflow creation status
-        uses: actions/upload-artifact@v4
-        with:
-          name: dynamic-test-workflow-created
-          path: status.txt
+      # - name: Upload dynamic test workflow creation status
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: dynamic-test-workflow-created
+      #     path: status.txt
+
+      - name: Trigger dynamic workflow
+        run: |
+          echo "::info::Triggering on side branch 'test-${{ github.head_ref }}'."
+          gh workflow run dynamic-test.yml \
+            --ref test-${{ github.head_ref }} \
+            --repo ${{ github.repository }} \
+            --field "ref=test-${{ github.head_ref }}" \
+            --field "trigger_sha=${{ github.sha }}"
+          echo "::info::Triggered on side branch."
+        env:
+          GH_TOKEN: ${{ secrets.PAT_ACTIONS }}
