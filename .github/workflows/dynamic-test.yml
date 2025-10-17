@@ -1,69 +1,52 @@
-name: Test the action run-plantuml-local (dynamic edition)
-on:
-  workflow_run:
-    workflows:
-      - Generate Dynamic Test Workflow
-    types:
-      - completed
-
+env:
+  GH_TOKEN: ${{ github.token }}
 jobs:
-  dynamic-override-success:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  cli-generate-diagram:
+    name: CLI arguments processed
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5.0.0
-        with:
-          ref: ${{ github.event.workflow_run.head_branch }}
-      - name: Describe Dynamic Override (success case)
-        run: >
-          echo "::info::"
-          "This is a placeholder job. The dynamic workflow generated on the configured trigger "
-          "events should override this with the actual job(s), which may naturally have "
-          "different names."
-          "\n"
-          "\n"
-          "We use this workaround because of the Github Actions UX defect that requires a workflow "
-          "file on the main branch in order for the workflow to run from a side branch, "
-          "pull request, etc."
-          && exit 0
-
-  dynamic-override-failure:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion != 'success' }}
-    steps:
-      - name: Describe Dynamic Override (failure case)
-        run: >
-          echo "::error::"
-          "This is a placeholder job. It will run if the dynamic workflow generation fails. This "
-          "ensures the overall workflow sequence is marked as a failure. For additional safety, "
-          "we recommend that the dynamic workflow created includes a job that runs on failure of "
-          "the dynamic workflow creation job. This covers the scenario where the dynamic workflow "
-          "is created, but the creation job fails for some reason."
-          "\n"
-          "\n"
-          "We use this workaround because of the Github Actions UX defect that requires a workflow "
-          "file on the main branch in order for the workflow to run from a side branch, "
-          "pull request, etc."
-          && exit 1
-
-  # trigger-on-side-branch:
-  #   runs-on: ubuntu-latest
-  #   if: ${{ github.event.workflow_run.conclusion == 'success' }}
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v5.0.0
-  #       with:
-  #         token: ${{ secrets.PAT_ACTIONS }}
-  #         ref: ${{ github.event.workflow_run.head_branch }}
-  #     - name: Trigger on side branch
-  #       run: |
-  #         echo "::info::Triggering on side branch 'test-${{ github.event.workflow_run.head_branch }}'."
-  #         gh workflow run dynamic-test.yml \
-  #           --ref test-${{ github.event.workflow_run.head_branch }} \
-  #           --repo ${{ github.repository }} \
-  #           --field "ref=test-${{ github.event.workflow_run.head_branch }}" \
-  #           --field "trigger_sha=${{ github.event.workflow_run.head_sha }}"
-  #         echo "::info::Triggered on side branch."
-  #       env:
-  #         GH_TOKEN: ${{ secrets.PAT_ACTIONS }}
+    - name: Report pending status to trigger SHA
+      run: 'gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha}}
+        --field state=pending --field context="test(dynamic): ${{ matrix.os}} - ${{
+        matrix.plantuml_version }}" --field description="test(dynamic): ${{ matrix.os}}
+        - ${{ matrix.plantuml_version }} result: pending"'
+    - name: Checkout Dynamic Test Workflow
+      uses: actions/checkout@v5.0.0
+      with:
+        ref: ${{ github.event.workflow_dispatch.inputs.ref }}
+        token: ${{ secrets.PAT_ACTIONS }}
+    - id: test-step
+      name: Hello World
+      run: echo "::info::Hello World from ${{ matrix.os }} with PlantUML version ${{
+        matrix.plantuml_version }}!"
+    - if: (${{ success() }} || ${{ failure() }})
+      name: Report final status to trigger SHA
+      run: 'gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha}}
+        --field state=${{ steps.test-step.outcome }} --field context="test(dynamic):
+        ${{ matrix.os}} - ${{ matrix.plantuml_version }}" --field description="test(dynamic):
+        ${{ matrix.os}} - ${{ matrix.plantuml_version }} result: ${{ steps.test-step.outcome
+        }}"'
+    strategy:
+      matrix:
+        os:
+        - ubuntu-24.04
+        - ubuntu-22.04
+        - macos-15
+        - macos-14
+        - windows-2025
+        - windows-2022
+        plantuml_version:
+        - latest
+        - 1.2025.8
+        - 1.2025.4
+        - 1.2025.3
+name: Test the action run-plantuml-local (dynamic edition)
+'on':
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: the git ref where the dynamic test workflow is available.
+        required: true
+      trigger_sha:
+        description: the sha related to the trigger for this workflow.
+        required: true
