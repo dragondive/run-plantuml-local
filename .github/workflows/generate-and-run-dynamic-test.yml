@@ -13,6 +13,13 @@ env:
   DYNAMIC_TEST_BRANCH: dynamic-test-${{ github.head_ref || github.ref_name }}
 
 jobs:
+  debug-step:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump vars context
+        env:
+          GITHUB_JSON: ${{ toJSON(github) }}
+        run: echo "${GITHUB_JSON}"
   generate-dynamic-tests-workflow:
     runs-on: ubuntu-latest # We use ubuntu to generate the dynamic tests, but the tests may run on
                            # any or multiple OS.
