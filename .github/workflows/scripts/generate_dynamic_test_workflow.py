@@ -14,7 +14,7 @@ def make_step_report_status(status: str, context: str, description: str) -> Dict
         "name": f"Report '{status}' status to the trigger SHA",
         "if": "${{ always() }}",
         "run": (
-            "gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha}} "
+            "gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha }} "
             f"--field state={status} "
             f'--field context="{context}" '
             f'--field description="{description} status: {status}" '
