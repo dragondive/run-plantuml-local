@@ -14,7 +14,7 @@ def make_step_report_status(status: str, context: str, description: str) -> Dict
         "name": f"Report '{status}' status to the trigger SHA",
         "if": "${{ always() }}",
         "run": (
-            "gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha}} "
+            "gh api repos/${{ github.repository }}/statuses/${{ inputs.trigger_sha }} "
             f"--field state={status} "
             f'--field context="{context}" '
             f'--field description="{description} status: {status}" '
@@ -76,19 +76,24 @@ def main():
     output_path = args.output
 
     oses = [
-        "ubuntu-24.04",
-        "ubuntu-22.04",
-        "macos-15",
-        "macos-14",
-        "windows-2025",
-        "windows-2022",
+        "ubuntu-24.04", "ubuntu-22.04",
+        "macos-26", "macos-15", "macos-14",
+        "windows-2025", "windows-2022",
+        "ubuntu-24.04-arm", "ubuntu-22.04-arm",
+        "windows-11-arm",
     ]
 
     plantuml_versions = [
         "latest",
-        "1.2025.8",
-        "1.2025.4",
-        "1.2025.3",
+        "1.2025.9", "1.2025.8", "1.2025.7", "1.2025.6", "1.2025.5", "1.2025.4",
+        "1.2025.3", "1.2025.2", "1.2025.1", "1.2025.0", "1.2024.8", "1.2024.7",
+        # "1.2024.6", "1.2024.5", "1.2024.4", "1.2024.3", "1.2024.2", "1.2024.1",
+        # "1.2024.0", "1.2023.13", "1.2023.12", "1.2023.11", "1.2023.10", "1.2023.9",
+        # "1.2023.8", "1.2023.7", "1.2023.6", "1.2023.5", "1.2023.4", "1.2023.3",
+        # "1.2023.2", "1.2023.1", "1.2023.0", "1.2022.14", "1.2022.13", "1.2022.12",
+        # "1.2022.11", "1.2022.10", "1.2022.9", "1.2022.8", "1.2022.7", "1.2022.6",
+        # "1.2022.5", "1.2022.4", "1.2022.3", "1.2022.2", "1.2022.1", "1.2022.0",
+        # "1.2021.16", "1.2021.15", "1.2021.14", "1.2021.13", "1.2021.12",
     ]
 
     jobs = {}

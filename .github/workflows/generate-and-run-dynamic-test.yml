@@ -13,6 +13,13 @@ env:
   DYNAMIC_TEST_BRANCH: dynamic-test-${{ github.head_ref || github.ref_name }}
 
 jobs:
+  debug-step:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump github context
+        env:
+          GITHUB_JSON: ${{ toJSON(github) }}
+        run: echo "${GITHUB_JSON}"
   generate-dynamic-tests-workflow:
     runs-on: ubuntu-latest # We use ubuntu to generate the dynamic tests, but the tests may run on
                            # any or multiple OS.
@@ -66,7 +73,7 @@ jobs:
             --ref ${{ env.DYNAMIC_TEST_BRANCH }} \
             --repo ${{ github.repository }} \
             --field "ref=${{ env.DYNAMIC_TEST_BRANCH }}" \
-            --field "trigger_sha=${{ github.sha }}"
+            --field "trigger_sha=${{ github.event.pull_request.head.sha }}"
           echo "::debug::Triggered dynamic tests on '${{ env.DYNAMIC_TEST_BRANCH }}'."
         env:
           GH_TOKEN: ${{ secrets.PAT_ACTIONS }}
