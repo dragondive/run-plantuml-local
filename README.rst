@@ -59,7 +59,7 @@ Examples
 
       steps:
         - name: Checkout repository
-          uses: actions/checkout@v4.1.7
+          uses: actions/checkout@v5.0.0
 
         - name: Run plantuml
           uses: dragondive/run-plantuml-local@v1.0.1
