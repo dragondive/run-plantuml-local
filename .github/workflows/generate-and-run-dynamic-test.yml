@@ -16,7 +16,7 @@ jobs:
   debug-step:
     runs-on: ubuntu-latest
     steps:
-      - name: Dump vars context
+      - name: Dump github context
         env:
           GITHUB_JSON: ${{ toJSON(github) }}
         run: echo "${GITHUB_JSON}"
@@ -73,7 +73,7 @@ jobs:
             --ref ${{ env.DYNAMIC_TEST_BRANCH }} \
             --repo ${{ github.repository }} \
             --field "ref=${{ env.DYNAMIC_TEST_BRANCH }}" \
-            --field "trigger_sha=${{ github.sha }}"
+            --field "trigger_sha=${{ github.event.pull_request.head.sha }}"
           echo "::debug::Triggered dynamic tests on '${{ env.DYNAMIC_TEST_BRANCH }}'."
         env:
           GH_TOKEN: ${{ secrets.PAT_ACTIONS }}
